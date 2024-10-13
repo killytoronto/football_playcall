@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Playbook App</title>a
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- React and ReactDOM via CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .container {
+      max-width: 1200px;
+      margin-top: 80px;
+      margin-bottom: 50px;
+    }
+    .card {
+      margin-bottom: 20px;
+    }
+    .play-card {
+      background-color: #ffffff;
+      border: 1px solid #dee2e6;
+      border-radius: 0.5rem;
+      padding: 15px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .navbar-brand {
+      font-weight: bold;
+    }
+    .modal-backdrop.show {
+      opacity: 0.5;
+    }
+    .cursor-pointer {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Main Application Script -->
+  <script type="text/babel">
+
+    // Play Types and Formations with Expanded Options
+    const playTypes = {
+      run: [
+        "Inside Zone", "Outside Zone", "Power", "Counter", "Draw", "Sweep",
+        "Jet Sweep", "Option Run", "Counter Trey", "Stretch", "Draw Dive",
+        "Iso", "Trap", "Reverse", "Draw Toss"
+      ],
+      pass: [
+        "Quick Pass", "Play Action", "Screen", "Deep Pass", "RPO",
+        "Slant", "Curl", "Fade", "Hitch", "Vertical", "Bootleg",
+        "Tunnel", "Shovel Pass", "Bubble Screen", "Corner Route"
+      ],
+      special: [
+        "Punt", "Field Goal", "Fake Punt", "Fake Field Goal", "Onside Kick",
+        "Punt Return", "Kickoff Return", "End Around", "Reverse", "Double Reverse",
+        "Spike", "Quarterback Sneak", "Halfback Pass", "Option Pass", "Hook and Ladder"
+      ],
+    };
+
+    const formations = [
+      "I-Formation", "Shotgun", "Pistol", "Spread", "Singleback",
+      "Wildcat", "Ace", "Empty", "Pro Set", "Trips",
+      "Bunch", "Two Back", "Flexbone", "Diamond", "Wing-T"
+    ];
+
+    // Initial Game Factors
+    const initialGameFactors = {
+      down: 1,
+      distance: 10,
+      fieldPosition: 50,
+      timeRemaining: 1800, // in seconds
+      score: { team: 0, opponent: 0 },
+      quarter: 1,
+      weather: "clear",
+    };
+
+    // Navbar Component
+    const Navbar = () => (
+      <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div className="container-fluid">
+          <a className="navbar-brand" href="#">Advanced Playbook</a>
+        </div>
+      </nav>
+    );
+
+    // Play Suggestion Component
+    const PlaySuggestion = ({ onPlayRecorded }) => {
+      const [gameFactors, setGameFactors] = React.useState(initialGameFactors);
+      const [opponentData, setOpponentData] = React.useState({
+        tendencies: { run: 0.6, pass: 0.4 },
+        strengths: { defense: "balanced", offense: "balanced" },
+      });
+      const [suggestedPlay, setSuggestedPlay] = React.useState(null);
+      const [loading, setLoading] = React.useState(false);
+      const [feedback, setFeedback] = React.useState("");
+
+      // Initialize Plays in LocalStorage
+      React.useEffect(() => {
+        const storedPlays = JSON.parse(localStorage.getItem('plays'));
+        if (!storedPlays) {
+          const initialPlays = {
+            run: { successRate: 1, totalAttempts: 0 },
+            pass: { successRate: 1, totalAttempts: 0 },
+            special: { successRate: 1, totalAttempts: 0 }
+          };
+          localStorage.setItem('plays', JSON.stringify(initialPlays));
+        }
+      }, []);
+
+      const aiSuggestPlay = () => {
+        setLoading(true);
+        setFeedback("");
+        // Fetch play success rates from LocalStorage
+        const plays = JSON.parse(localStorage.getItem('plays')) || {};
+        const playSuccessRates = {
+          run: plays.run.successRate || 1,
+          pass: plays.pass.successRate || 1,
+          special: plays.special.successRate || 1
+        };
+
+        // Adjust weights based on opponent strengths
+        let runWeight = 0.5;
+        let passWeight = 0.5;
+        let specialWeight = 0;
+
+        if (opponentData.strengths.defense === "strong") {
+          passWeight += 0.2;
+          runWeight -= 0.2;
+        } else if (opponentData.strengths.defense === "weak") {
+          runWeight += 0.2;
+          passWeight -= 0.2;
+        }
+
+        // Adjust weights based on game factors
+        if (gameFactors.down === 4) {
+          passWeight += 0.1;
+          runWeight -= 0.1;
+        }
+
+        // Include special plays based on certain conditions
+        if (gameFactors.distance > 15) {
+          specialWeight += 0.2;
+          passWeight -= 0.2;
+        }
+
+        // Calculate total weights
+        const totalWeight = (runWeight * playSuccessRates.run) + 
+                            (passWeight * playSuccessRates.pass) + 
+                            (specialWeight * playSuccessRates.special);
+
+        const rand = Math.random() * totalWeight;
+
+        let playType;
+        if (rand < runWeight * playSuccessRates.run) {
+          playType = "run";
+        } else if (rand < (runWeight * playSuccessRates.run) + (passWeight * playSuccessRates.pass)) {
+          playType = "pass";
+        } else {
+          playType = "special";
+        }
+
+        const play = playTypes[playType][Math.floor(Math.random() * playTypes[playType].length)];
+        const formation = formations[Math.floor(Math.random() * formations.length)];
+
+        setSuggestedPlay({ type: playType, play, formation });
+        setLoading(false);
+      };
+
+      const handlePlayOutcome = (success) => {
+        if (suggestedPlay) {
+          const plays = JSON.parse(localStorage.getItem('plays')) || {};
+          const playType = suggestedPlay.type;
+          const currentSuccess = plays[playType].successRate;
+          const totalAttempts = plays[playType].totalAttempts;
+
+          const newTotalAttempts = totalAttempts + 1;
+          const newSuccessRate = success
+            ? (currentSuccess * totalAttempts + 1) / newTotalAttempts
+            : (currentSuccess * totalAttempts) / newTotalAttempts;
+
+          plays[playType].successRate = newSuccessRate;
+          plays[playType].totalAttempts = newTotalAttempts;
+
+          localStorage.setItem('plays', JSON.stringify(plays));
+
+          setSuggestedPlay(null);
+          setFeedback("Play outcome recorded!");
+          setTimeout(() => setFeedback(""), 3000);
+
+          // Notify parent component to refresh analytics
+          if (onPlayRecorded) onPlayRecorded();
+        }
+      };
+
+      return (
+        <div className="card">
+          <div className="card-body">
+            <h5 className="card-title">Play Suggestion</h5>
+            <form>
+              <div className="row mb-3">
+                <div className="col-md-2">
+                  <label className="form-label">Down</label>
+                  <input type="number" className="form-control" min="1" max="4"
+                    value={gameFactors.down}
+                    onChange={(e) => setGameFactors({ ...gameFactors, down: Number(e.target.value) })} />
+                </div>
+                <div className="col-md-2">
+                  <label className="form-label">Distance</label>
+                  <input type="number" className="form-control" min="1" max="20"
+                    value={gameFactors.distance}
+                    onChange={(e) => setGameFactors({ ...gameFactors, distance: Number(e.target.value) })} />
+                </div>
+                <div className="col-md-2">
+                  <label className="form-label">Field Position (%)</label>
+                  <input type="number" className="form-control" min="0" max="100"
+                    value={gameFactors.fieldPosition}
+                    onChange={(e) => setGameFactors({ ...gameFactors, fieldPosition: Number(e.target.value) })} />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Time Remaining (sec)</label>
+                  <input type="number" className="form-control" min="0"
+                    value={gameFactors.timeRemaining}
+                    onChange={(e) => setGameFactors({ ...gameFactors, timeRemaining: Number(e.target.value) })} />
+                </div>
+                <div className="col-md-2">
+                  <label className="form-label">Quarter</label>
+                  <input type="number" className="form-control" min="1" max="4"
+                    value={gameFactors.quarter}
+                    onChange={(e) => setGameFactors({ ...gameFactors, quarter: Number(e.target.value) })} />
+                </div>
+                <div className="col-md-1">
+                  <label className="form-label">Weather</label>
+                  <select className="form-select"
+                    value={gameFactors.weather}
+                    onChange={(e) => setGameFactors({ ...gameFactors, weather: e.target.value })}>
+                    <option value="clear">Clear</option>
+                    <option value="rain">Rain</option>
+                    <option value="snow">Snow</option>
+                    <option value="windy">Windy</option>
+                  </select>
+                </div>
+              </div>
+
+              <hr />
+
+              <h6>Opponent Data</h6>
+              <div className="row mb-3">
+                <div className="col-md-3">
+                  <label className="form-label">Run Tendency (0-1)</label>
+                  <input type="number" className="form-control" min="0" max="1" step="0.1"
+                    value={opponentData.tendencies.run}
+                    onChange={(e) => setOpponentData({
+                      ...opponentData,
+                      tendencies: { ...opponentData.tendencies, run: Number(e.target.value) }
+                    })} />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Pass Tendency (0-1)</label>
+                  <input type="number" className="form-control" min="0" max="1" step="0.1"
+                    value={opponentData.tendencies.pass}
+                    onChange={(e) => setOpponentData({
+                      ...opponentData,
+                      tendencies: { ...opponentData.tendencies, pass: Number(e.target.value) }
+                    })} />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Defense Strength</label>
+                  <select className="form-select"
+                    value={opponentData.strengths.defense}
+                    onChange={(e) => setOpponentData({
+                      ...opponentData,
+                      strengths: { ...opponentData.strengths, defense: e.target.value }
+                    })}>
+                    <option value="strong">Strong</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="weak">Weak</option>
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Offense Strength</label>
+                  <select className="form-select"
+                    value={opponentData.strengths.offense}
+                    onChange={(e) => setOpponentData({
+                      ...opponentData,
+                      strengths: { ...opponentData.strengths, offense: e.target.value }
+                    })}>
+                    <option value="strong">Strong</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="weak">Weak</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="button" className="btn btn-primary" onClick={aiSuggestPlay} disabled={loading}>
+                {loading ? "Suggesting Play..." : "Suggest Play"}
+              </button>
+            </form>
+
+            {suggestedPlay && (
+              <div className="mt-4 p-3 bg-light rounded">
+                <h5>Suggested Play</h5>
+                <p><strong>Type:</strong> {suggestedPlay.type.toUpperCase()}</p>
+                <p><strong>Play:</strong> {suggestedPlay.play}</p>
+                <p><strong>Formation:</strong> {suggestedPlay.formation}</p>
+                <button className="btn btn-success me-2" onClick={() => handlePlayOutcome(true)}>
+                  Success <i className="fas fa-check"></i>
+                </button>
+                <button className="btn btn-danger" onClick={() => handlePlayOutcome(false)}>
+                  Failure <i className="fas fa-times"></i>
+                </button>
+              </div>
+            )}
+
+            {feedback && <div className="alert alert-info mt-3">{feedback}</div>}
+          </div>
+        </div>
+      );
+    };
+
+    // Custom Play Form Component
+    const CustomPlayForm = ({ refreshPlaybook }) => {
+      const [name, setName] = React.useState("");
+      const [type, setType] = React.useState("run");
+      const [formation, setFormation] = React.useState("I-Formation");
+      const [players, setPlayers] = React.useState("");
+      const [error, setError] = React.useState("");
+      const [success, setSuccess] = React.useState("");
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setError("");
+        setSuccess("");
+        if (!name || !players) {
+          setError("Please fill in all fields.");
+          return;
+        }
+
+        const newPlay = {
+          name,
+          type,
+          formation,
+          players: players.split(",").map(p => p.trim())
+        };
+
+        const playbook = JSON.parse(localStorage.getItem('playbook')) || [];
+        playbook.push(newPlay);
+        localStorage.setItem('playbook', JSON.stringify(playbook));
+
+        setName("");
+        setType("run");
+        setFormation("I-Formation");
+        setPlayers("");
+        setSuccess("Custom play added successfully!");
+        setTimeout(() => setSuccess(""), 3000);
+        refreshPlaybook();
+      };
+
+      return (
+        <div className="card">
+          <div className="card-body">
+            <h5 className="card-title">Create Custom Play</h5>
+            {error && <div className="alert alert-danger">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label className="form-label">Play Name</label>
+                <input type="text" className="form-control" value={name}
+                  onChange={(e) => setName(e.target.value)} required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Play Type</label>
+                <select className="form-select" value={type}
+                  onChange={(e) => setType(e.target.value)}>
+                  {Object.keys(playTypes).map(pt => (
+                    <option key={pt} value={pt}>{pt.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Formation</label>
+                <select className="form-select" value={formation}
+                  onChange={(e) => setFormation(e.target.value)}>
+                  {formations.map(form => (
+                    <option key={form} value={form}>{form}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Players Involved (comma separated)</label>
+                <input type="text" className="form-control" value={players}
+                  onChange={(e) => setPlayers(e.target.value)} required />
+              </div>
+              <button type="submit" className="btn btn-primary">Add Custom Play</button>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    // Playbook Display Component
+    const Playbook = () => {
+      const [customPlays, setCustomPlays] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState("");
+      const [deleteFeedback, setDeleteFeedback] = React.useState("");
+
+      const fetchCustomPlays = () => {
+        setLoading(true);
+        setError("");
+        try {
+          const plays = JSON.parse(localStorage.getItem('playbook')) || [];
+          setCustomPlays(plays);
+        } catch (err) {
+          setError("Failed to load playbook.");
+        }
+        setLoading(false);
+      };
+
+      React.useEffect(() => {
+        fetchCustomPlays();
+      }, []);
+
+      const handleDelete = (index) => {
+        if (confirm("Are you sure you want to delete this play?")) {
+          const playbook = JSON.parse(localStorage.getItem('playbook')) || [];
+          playbook.splice(index, 1);
+          localStorage.setItem('playbook', JSON.stringify(playbook));
+          setDeleteFeedback("Play deleted successfully!");
+          setTimeout(() => setDeleteFeedback(""), 3000);
+          fetchCustomPlays();
+        }
+      };
+
+      return (
+        <div className="card">
+          <div className="card-body">
+            <h5 className="card-title">Your Playbook</h5>
+            {error && <div className="alert alert-danger">{error}</div>}
+            {deleteFeedback && <div className="alert alert-success">{deleteFeedback}</div>}
+            {loading ? (
+              <p>Loading...</p>
+            ) : customPlays.length > 0 ? (
+              customPlays.map((play, index) => (
+                <div key={index} className="play-card">
+                  <h6>{play.name}</h6>
+                  <p><strong>Type:</strong> {play.type.toUpperCase()}</p>
+                  <p><strong>Formation:</strong> {play.formation}</p>
+                  <p><strong>Players:</strong> {play.players.join(", ")}</p>
+                  <button className="btn btn-success btn-sm me-2"
+                    onClick={() => alert(`Selected Play: ${play.name}\nFormation: ${play.formation}\nPlayers: ${play.players.join(", ")}`)}>
+                    Select <i className="fas fa-check"></i>
+                  </button>
+                  <button className="btn btn-danger btn-sm"
+                    onClick={() => handleDelete(index)}>
+                    Delete <i className="fas fa-trash"></i>
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p>No custom plays added yet.</p>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // Analytics Dashboard Component
+    const Analytics = () => {
+      const [playData, setPlayData] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState("");
+      const chartRef = React.useRef(null);
+      const chartInstanceRef = React.useRef(null);
+
+      const fetchPlayData = () => {
+        setLoading(true);
+        setError("");
+        try {
+          const plays = JSON.parse(localStorage.getItem('playbook')) || [];
+          setPlayData(plays);
+        } catch (err) {
+          setError("Failed to load analytics.");
+        }
+        setLoading(false);
+      };
+
+      React.useEffect(() => {
+        fetchPlayData();
+      }, []);
+
+      // Calculate play type distribution
+      const playTypeCount = playData.reduce((acc, play) => {
+        acc[play.type] = (acc[play.type] || 0) + 1;
+        return acc;
+      }, {});
+
+      const chartData = Object.keys(playTypeCount).map(type => ({
+        name: type.toUpperCase(),
+        value: playTypeCount[type]
+      }));
+
+      React.useEffect(() => {
+        if (chartData.length === 0) {
+          if (chartInstanceRef.current) {
+            chartInstanceRef.current.destroy();
+            chartInstanceRef.current = null;
+          }
+          return;
+        }
+
+        const ctx = chartRef.current.getContext('2d');
+
+        // Destroy existing chart instance if it exists
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.destroy();
+        }
+
+        chartInstanceRef.current = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: chartData.map(data => data.name),
+            datasets: [{
+              data: chartData.map(data => data.value),
+              backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF',
+                '#FF9F40',
+                '#FF9F40',
+                '#36A2EB',
+                '#FF6384'
+              ],
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'top',
+              },
+              title: {
+                display: true,
+                text: 'Play Type Distribution'
+              }
+            }
+          },
+        });
+      }, [chartData]);
+
+      return (
+        <div className="card">
+          <div className="card-body">
+            <h5 className="card-title">Analytics Dashboard</h5>
+            {loading ? (
+              <p>Loading...</p>
+            ) : error ? (
+              <div className="alert alert-danger">{error}</div>
+            ) : playData.length > 0 ? (
+              <div>
+                <canvas id="playTypeChart" ref={chartRef}></canvas>
+              </div>
+            ) : (
+              <p>No data to display.</p>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // Main App Component
+    const App = () => {
+      const [refreshFlag, setRefreshFlag] = React.useState(false);
+
+      const refreshPlaybook = () => {
+        setRefreshFlag(!refreshFlag);
+      };
+
+      const handlePlayRecorded = () => {
+        // Refresh Analytics when a play outcome is recorded
+        setRefreshFlag(!refreshFlag);
+      };
+
+      return (
+        <div>
+          <Navbar />
+          <div className="container">
+            <div className="row">
+              <div className="col-md-6">
+                <PlaySuggestion onPlayRecorded={handlePlayRecorded} />
+                <CustomPlayForm refreshPlaybook={refreshPlaybook} />
+              </div>
+              <div className="col-md-6">
+                <Playbook />
+                <Analytics key={refreshFlag} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Render the App
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+
+  <!-- Bootstrap 5 JS and dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
