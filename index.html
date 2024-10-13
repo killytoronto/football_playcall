@@ -5,22 +5,24 @@
   <title>Advanced Playbook App</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Font Awesome for Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Chart.js for Analytics -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <!-- React and ReactDOM via CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <!-- Babel for JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
       background-color: #f8f9fa;
     }
     .container {
       max-width: 1200px;
-      margin-top: 80px;
+      margin-top: 50px;
       margin-bottom: 50px;
     }
     .card {
@@ -40,20 +42,6 @@
     .modal-backdrop.show {
       opacity: 0.5;
     }
-    .cursor-pointer {
-      cursor: pointer;
-    }
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-      .field-diagram {
-        height: 150px;
-      }
-      .player-icon {
-        width: 20px;
-        height: 20px;
-        font-size: 0.75rem;
-      }
-    }
   </style>
 </head>
 <body>
@@ -62,77 +50,45 @@
   <!-- Main Application Script -->
   <script type="text/babel">
 
-    // Import necessary hooks and context from React
-    const { useState, useEffect, useContext, createContext, useRef } = React;
-
-    // Define player positions
-    const playerPositions = ["QB", "RB", "WR", "TE", "OL", "DL", "LB", "CB", "S", "P", "K"];
-
-    // Define play types with player positions
-    const playTypes = {
-      run: [
-        { name: "Inside Zone", positions: ["RB", "OL"] },
-        { name: "Outside Zone", positions: ["RB", "OL"] },
-        { name: "Power", positions: ["RB", "OL"] },
-        { name: "Counter", positions: ["RB", "OL"] },
-        { name: "Draw", positions: ["RB", "OL"] },
-        { name: "Sweep", positions: ["RB", "OL"] },
-        { name: "Jet Sweep", positions: ["WR", "RB", "OL"] },
-        { name: "Option Run", positions: ["QB", "RB", "OL"] },
-        { name: "Counter Trey", positions: ["RB", "OL"] },
-        { name: "Stretch", positions: ["RB", "OL"] },
-        { name: "Draw Dive", positions: ["RB", "OL"] },
-        { name: "Iso", positions: ["RB", "OL"] },
-        { name: "Trap", positions: ["RB", "OL"] },
-        { name: "Reverse", positions: ["WR", "RB"] },
-        { name: "Draw Toss", positions: ["RB", "OL"] }
-      ],
-      pass: [
-        { name: "Quick Pass", positions: ["QB", "WR", "TE"] },
-        { name: "Play Action", positions: ["QB", "RB", "OL"] },
-        { name: "Screen", positions: ["QB", "WR", "TE", "OL"] },
-        { name: "Deep Pass", positions: ["QB", "WR", "TE", "CB", "S"] },
-        { name: "RPO", positions: ["QB", "RB", "WR", "TE"] },
-        { name: "Slant", positions: ["QB", "WR", "TE"] },
-        { name: "Curl", positions: ["QB", "WR", "TE"] },
-        { name: "Fade", positions: ["QB", "WR", "TE", "CB"] },
-        { name: "Hitch", positions: ["QB", "WR", "TE"] },
-        { name: "Vertical", positions: ["QB", "WR", "TE", "CB", "S"] },
-        { name: "Bootleg", positions: ["QB", "WR", "TE"] },
-        { name: "Tunnel", positions: ["QB", "WR", "TE"] },
-        { name: "Shovel Pass", positions: ["QB", "RB", "WR", "TE"] },
-        { name: "Bubble Screen", positions: ["QB", "WR", "TE"] },
-        { name: "Corner Route", positions: ["QB", "WR", "TE", "CB"] }
-      ],
-      special: [
-        { name: "Punt", positions: ["P"] },
-        { name: "Field Goal", positions: ["K"] },
-        { name: "Fake Punt", positions: ["P", "K", "QB", "RB"] },
-        { name: "Fake Field Goal", positions: ["K", "QB", "RB"] },
-        { name: "Onside Kick", positions: ["K"] },
-        { name: "Punt Return", positions: ["RB", "CB", "S"] },
-        { name: "Kickoff Return", positions: ["RB", "CB", "S"] },
-        { name: "End Around", positions: ["WR", "RB"] },
-        { name: "Reverse", positions: ["WR", "RB"] },
-        { name: "Double Reverse", positions: ["WR", "RB"] },
-        { name: "Spike", positions: ["QB"] },
-        { name: "Quarterback Sneak", positions: ["QB", "OL"] },
-        { name: "Halfback Pass", positions: ["RB", "QB"] },
-        { name: "Option Pass", positions: ["QB", "RB"] },
-        { name: "Hook and Ladder", positions: ["WR", "RB", "TE"] }
-      ],
-      custom: [] // Placeholder for custom plays
+    // Firebase Configuration - Replace with your own config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    // Define formations
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Play Types and Formations with Expanded Options
+    const playTypes = {
+      run: [
+        "Inside Zone", "Outside Zone", "Power", "Counter", "Draw", "Sweep",
+        "Jet Sweep", "Option Run", "Counter Trey", "Stretch", "Draw Dive",
+        "Iso", "Trap", "Reverse", "Draw Toss"
+      ],
+      pass: [
+        "Quick Pass", "Play Action", "Screen", "Deep Pass", "RPO",
+        "Slant", "Curl", "Fade", "Hitch", "Vertical", "Bootleg",
+        "Tunnel", "Shovel Pass", "Bubble Screen", "Corner Route"
+      ],
+      special: [
+        "Punt", "Field Goal", "Fake Punt", "Fake Field Goal", "Onside Kick",
+        "Punt Return", "Kickoff Return", "End Around", "Reverse", "Double Reverse",
+        "Spike", "Quarterback Sneak", "Halfback Pass", "Option Pass", "Hook and Ladder"
+      ],
+    };
+
     const formations = [
       "I-Formation", "Shotgun", "Pistol", "Spread", "Singleback",
       "Wildcat", "Ace", "Empty", "Pro Set", "Trips",
-      "Bunch", "Two Back", "Flexbone", "Diamond", "Wing-T", "Custom"
+      "Bunch", "Two Back", "Flexbone", "Diamond", "Wing-T"
     ];
-
-    // Define available categories
-    const availableCategories = ["Offense", "Defense", "Special Teams", "Trick Plays"];
 
     // Initial Game Factors
     const initialGameFactors = {
@@ -145,207 +101,231 @@
       weather: "clear",
     };
 
-    // Create Playbook Context for state management
-    const PlaybookContext = createContext();
-
-    const PlaybookProvider = ({ children }) => {
-      const [playbook, setPlaybook] = useState([]);
-      const [playHistory, setPlayHistory] = useState([]);
-
-      useEffect(() => {
-        // Load playbook from localStorage
-        const storedPlaybook = JSON.parse(localStorage.getItem('playbook')) || [];
-        setPlaybook(storedPlaybook);
-
-        // Load play history from localStorage
-        const storedPlayHistory = JSON.parse(localStorage.getItem('playHistory')) || [];
-        setPlayHistory(storedPlayHistory);
-      }, []);
-
-      const addPlay = (play) => {
-        const updatedPlaybook = [...playbook, play];
-        setPlaybook(updatedPlaybook);
-        localStorage.setItem('playbook', JSON.stringify(updatedPlaybook));
-      };
-
-      const deletePlay = (index) => {
-        const updatedPlaybook = [...playbook];
-        updatedPlaybook.splice(index, 1);
-        setPlaybook(updatedPlaybook);
-        localStorage.setItem('playbook', JSON.stringify(updatedPlaybook));
-      };
-
-      const addPlayHistory = (history) => {
-        const updatedHistory = [...playHistory, history];
-        setPlayHistory(updatedHistory);
-        localStorage.setItem('playHistory', JSON.stringify(updatedHistory));
-      };
-
-      return (
-        <PlaybookContext.Provider value={{ playbook, addPlay, deletePlay, playHistory, addPlayHistory }}>
-          {children}
-        </PlaybookContext.Provider>
-      );
-    };
-
-    // Error Boundary Component
-    class ErrorBoundary extends React.Component {
-      constructor(props) {
-        super(props);
-        this.state = { hasError: false };
-      }
-
-      static getDerivedStateFromError(error) {
-        return { hasError: true };
-      }
-
-      componentDidCatch(error, info) {
-        console.error("ErrorBoundary caught an error", error, info);
-      }
-
-      render() {
-        if (this.state.hasError) {
-          return <div className="alert alert-danger">Something went wrong.</div>;
-        }
-
-        return this.props.children; 
-      }
-    }
-
     // Navbar Component
-    const Navbar = () => (
+    const Navbar = ({ currentUser, handleLogout }) => (
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div className="container-fluid">
           <a className="navbar-brand" href="#">Advanced Playbook</a>
+          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span className="navbar-toggler-icon"></span>
+          </button>
+          <div className="collapse navbar-collapse justify-content-end" id="navbarNav">
+            {currentUser ? (
+              <ul className="navbar-nav">
+                <li className="nav-item">
+                  <span className="nav-link">Hello, {currentUser.email}</span>
+                </li>
+                <li className="nav-item">
+                  <button className="btn btn-outline-light" onClick={handleLogout}>
+                    Logout <i className="fas fa-sign-out-alt"></i>
+                  </button>
+                </li>
+              </ul>
+            ) : (
+              <ul className="navbar-nav">
+                <li className="nav-item">
+                  <button className="btn btn-outline-light me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    Login
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button className="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#signupModal">
+                    Sign Up
+                  </button>
+                </li>
+              </ul>
+            )}
+          </div>
         </div>
       </nav>
     );
 
+    // Signup Modal Component
+    const SignupModal = ({ show, handleClose }) => {
+      const [email, setEmail] = React.useState("");
+      const [password, setPassword] = React.useState("");
+      const [error, setError] = React.useState("");
+
+      const handleSignup = async (e) => {
+        e.preventDefault();
+        setError("");
+        try {
+          await auth.createUserWithEmailAndPassword(email, password);
+          handleClose();
+        } catch (err) {
+          setError(err.message);
+        }
+      };
+
+      return (
+        <div className={`modal ${show ? "d-block" : "d-none"}`} tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <form onSubmit={handleSignup}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Sign Up</h5>
+                  <button type="button" className="btn-close" onClick={handleClose}></button>
+                </div>
+                <div className="modal-body">
+                  {error && <div className="alert alert-danger">{error}</div>}
+                  <div className="mb-3">
+                    <label htmlFor="signupEmail" className="form-label">Email address</label>
+                    <input type="email" className="form-control" id="signupEmail" required
+                      value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="signupPassword" className="form-label">Password</label>
+                    <input type="password" className="form-control" id="signupPassword" required
+                      value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={handleClose}>Close</button>
+                  <button type="submit" className="btn btn-primary">Sign Up</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Login Modal Component
+    const LoginModal = ({ show, handleClose }) => {
+      const [email, setEmail] = React.useState("");
+      const [password, setPassword] = React.useState("");
+      const [error, setError] = React.useState("");
+
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        setError("");
+        try {
+          await auth.signInWithEmailAndPassword(email, password);
+          handleClose();
+        } catch (err) {
+          setError(err.message);
+        }
+      };
+
+      return (
+        <div className={`modal ${show ? "d-block" : "d-none"}`} tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <form onSubmit={handleLogin}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Login</h5>
+                  <button type="button" className="btn-close" onClick={handleClose}></button>
+                </div>
+                <div className="modal-body">
+                  {error && <div className="alert alert-danger">{error}</div>}
+                  <div className="mb-3">
+                    <label htmlFor="loginEmail" className="form-label">Email address</label>
+                    <input type="email" className="form-control" id="loginEmail" required
+                      value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="loginPassword" className="form-label">Password</label>
+                    <input type="password" className="form-control" id="loginPassword" required
+                      value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={handleClose}>Close</button>
+                  <button type="submit" className="btn btn-primary">Login</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     // Play Suggestion Component
-    const PlaySuggestion = ({ onPlayRecorded }) => {
-      const { playbook, playHistory, addPlayHistory } = useContext(PlaybookContext);
-      const [gameFactors, setGameFactors] = useState(initialGameFactors);
-      const [opponentData, setOpponentData] = useState({
+    const PlaySuggestion = ({ currentUser }) => {
+      const [gameFactors, setGameFactors] = React.useState(initialGameFactors);
+      const [opponentData, setOpponentData] = React.useState({
         tendencies: { run: 0.6, pass: 0.4 },
         strengths: { defense: "balanced", offense: "balanced" },
       });
-      const [suggestedPlay, setSuggestedPlay] = useState(null);
-      const [recommendations, setRecommendations] = useState([]);
-      const [loading, setLoading] = useState(false);
-      const [feedback, setFeedback] = useState("");
+      const [suggestedPlay, setSuggestedPlay] = React.useState(null);
+      const [loading, setLoading] = React.useState(false);
+      const [feedback, setFeedback] = React.useState("");
 
-      const aiSuggestPlay = () => {
+      const aiSuggestPlay = async () => {
         setLoading(true);
         setFeedback("");
-
-        if (playbook.length === 0) {
-          alert("Playbook is empty. Please add plays.");
-          setLoading(false);
-          return;
-        }
-
-        // Filter plays based on game factors and opponent data
-        const filteredPlays = playbook.filter(play => {
-          // Example conditions
-          if (gameFactors.down >= 3 && play.type === "run") return false;
-          if (gameFactors.distance > 15 && play.type !== "pass") return false;
-          // Add more conditions as needed
-          return true;
+        // Fetch play success rates from Firestore
+        const playsSnapshot = await db.collection("plays").get();
+        const playSuccessRates = {};
+        playsSnapshot.forEach(doc => {
+          playSuccessRates[doc.id] = doc.data().successRate || 1;
         });
 
-        if (filteredPlays.length === 0) {
-          alert("No suitable plays found for the current game situation.");
-          setLoading(false);
-          return;
+        // Adjust weights based on opponent strengths
+        let runWeight = 0.5;
+        let passWeight = 0.5;
+
+        if (opponentData.strengths.defense === "strong") {
+          passWeight += 0.2;
+          runWeight -= 0.2;
+        } else if (opponentData.strengths.defense === "weak") {
+          runWeight += 0.2;
+          passWeight -= 0.2;
         }
 
-        // Sort plays based on success rates
-        const sortedPlays = filteredPlays.sort((a, b) => {
-          const aSuccess = a.successRate || 0.5;
-          const bSuccess = b.successRate || 0.5;
-          return bSuccess - aSuccess;
-        });
+        // Adjust weights based on game factors
+        if (gameFactors.down === 4) {
+          passWeight = 0.3;
+          runWeight = 0.3;
+        }
 
-        // Select the top play
-        const topPlay = sortedPlays[0];
-        setSuggestedPlay(topPlay);
+        // Calculate weighted random selection
+        const runSuccess = playSuccessRates["run"] || 1;
+        const passSuccess = playSuccessRates["pass"] || 1;
+
+        const totalWeight = (runWeight * runSuccess) + (passWeight * passSuccess);
+        const rand = Math.random() * totalWeight;
+
+        let playType;
+        if (rand < runWeight * runSuccess) {
+          playType = "run";
+        } else {
+          playType = "pass";
+        }
+
+        const play = playTypes[playType][Math.floor(Math.random() * playTypes[playType].length)];
+        const formation = formations[Math.floor(Math.random() * formations.length)];
+
+        setSuggestedPlay({ type: playType, play, formation });
         setLoading(false);
       };
 
-      const generateRecommendations = () => {
-        if (playbook.length === 0) {
-          setRecommendations([]);
-          return;
-        }
-
-        // Analyze current game situation and historical data to recommend plays
-        const recommendationScores = playbook.map(play => {
-          // Base score from success rate
-          const successRate = play.successRate || 0.5;
-          let score = successRate;
-
-          // Adjust score based on game factors
-          if (gameFactors.down >= 3 && play.type === "pass") score += 0.1;
-          if (gameFactors.distance <= 5 && play.type === "run") score += 0.1;
-          // Adjust based on opponent strengths
-          if (opponentData.strengths.defense === "strong" && play.type === "pass") score += 0.05;
-          if (opponentData.strengths.defense === "weak" && play.type === "run") score += 0.05;
-
-          return { play, score };
-        });
-
-        // Sort recommendations by score
-        const sortedRecommendations = recommendationScores.sort((a, b) => b.score - a.score).slice(0, 5).map(item => item.play);
-        setRecommendations(sortedRecommendations);
-      };
-
-      useEffect(() => {
-        generateRecommendations();
-      }, [gameFactors, opponentData, playbook]);
-
-      const handlePlayOutcome = (success) => {
+      const handlePlayOutcome = async (success) => {
         if (suggestedPlay) {
-          // Update success rates
-          const updatedPlaybook = playbook.map(play => {
-            if (play.name === suggestedPlay.name) {
-              const totalAttempts = play.totalAttempts || 0;
-              const totalSuccesses = play.totalSuccesses || 0;
-              const newTotalAttempts = totalAttempts + 1;
-              const newTotalSuccesses = success ? totalSuccesses + 1 : totalSuccesses;
-              return {
-                ...play,
-                totalAttempts: newTotalAttempts,
-                totalSuccesses: newTotalSuccesses,
-                successRate: newTotalAttempts > 0 ? (newTotalSuccesses / newTotalAttempts).toFixed(2) : 0.5
-              };
-            }
-            return play;
-          });
-
-          // Update playbook in context and localStorage
-          setPlaybook(updatedPlaybook);
-          localStorage.setItem('playbook', JSON.stringify(updatedPlaybook));
-
-          // Record play history
-          const newHistory = {
-            playName: suggestedPlay.name,
-            playType: suggestedPlay.type,
-            formation: suggestedPlay.formation,
-            date: new Date().toISOString(),
-            success
-          };
-          addPlayHistory(newHistory);
-
+          const playRef = db.collection("plays").doc(suggestedPlay.type);
+          const doc = await playRef.get();
+          if (doc.exists) {
+            const currentSuccess = doc.data().successRate || 1;
+            const totalAttempts = doc.data().totalAttempts || 1;
+            const newSuccessRate = success
+              ? (currentSuccess * totalAttempts + 1) / (totalAttempts + 1)
+              : (currentSuccess * totalAttempts) / (totalAttempts + 1);
+            await playRef.update({
+              successRate: newSuccessRate,
+              totalAttempts: firebase.firestore.FieldValue.increment(1)
+            });
+          } else {
+            await playRef.set({
+              successRate: success ? 1 : 0,
+              totalAttempts: 1
+            });
+          }
           setSuggestedPlay(null);
           setFeedback("Play outcome recorded!");
           setTimeout(() => setFeedback(""), 3000);
-
-          // Notify parent component to refresh analytics
-          if (onPlayRecorded) onPlayRecorded();
         }
       };
-
-      const { setPlaybook } = useContext(PlaybookContext); // For updating playbook
 
       return (
         <div className="card">
@@ -353,37 +333,37 @@
             <h5 className="card-title">Play Suggestion</h5>
             <form>
               <div className="row mb-3">
-                <div className="col-md-2 col-sm-4 col-6">
+                <div className="col-md-2">
                   <label className="form-label">Down</label>
                   <input type="number" className="form-control" min="1" max="4"
                     value={gameFactors.down}
                     onChange={(e) => setGameFactors({ ...gameFactors, down: Number(e.target.value) })} />
                 </div>
-                <div className="col-md-2 col-sm-4 col-6">
+                <div className="col-md-2">
                   <label className="form-label">Distance</label>
                   <input type="number" className="form-control" min="1" max="20"
                     value={gameFactors.distance}
                     onChange={(e) => setGameFactors({ ...gameFactors, distance: Number(e.target.value) })} />
                 </div>
-                <div className="col-md-2 col-sm-4 col-6">
+                <div className="col-md-2">
                   <label className="form-label">Field Position (%)</label>
                   <input type="number" className="form-control" min="0" max="100"
                     value={gameFactors.fieldPosition}
                     onChange={(e) => setGameFactors({ ...gameFactors, fieldPosition: Number(e.target.value) })} />
                 </div>
-                <div className="col-md-3 col-sm-6 col-12">
+                <div className="col-md-3">
                   <label className="form-label">Time Remaining (sec)</label>
                   <input type="number" className="form-control" min="0"
                     value={gameFactors.timeRemaining}
                     onChange={(e) => setGameFactors({ ...gameFactors, timeRemaining: Number(e.target.value) })} />
                 </div>
-                <div className="col-md-2 col-sm-6 col-12">
+                <div className="col-md-2">
                   <label className="form-label">Quarter</label>
                   <input type="number" className="form-control" min="1" max="4"
                     value={gameFactors.quarter}
                     onChange={(e) => setGameFactors({ ...gameFactors, quarter: Number(e.target.value) })} />
                 </div>
-                <div className="col-md-1 col-sm-6 col-12">
+                <div className="col-md-1">
                   <label className="form-label">Weather</label>
                   <select className="form-select"
                     value={gameFactors.weather}
@@ -400,7 +380,7 @@
 
               <h6>Opponent Data</h6>
               <div className="row mb-3">
-                <div className="col-md-3 col-sm-6 col-12">
+                <div className="col-md-3">
                   <label className="form-label">Run Tendency (0-1)</label>
                   <input type="number" className="form-control" min="0" max="1" step="0.1"
                     value={opponentData.tendencies.run}
@@ -409,7 +389,7 @@
                       tendencies: { ...opponentData.tendencies, run: Number(e.target.value) }
                     })} />
                 </div>
-                <div className="col-md-3 col-sm-6 col-12">
+                <div className="col-md-3">
                   <label className="form-label">Pass Tendency (0-1)</label>
                   <input type="number" className="form-control" min="0" max="1" step="0.1"
                     value={opponentData.tendencies.pass}
@@ -418,7 +398,7 @@
                       tendencies: { ...opponentData.tendencies, pass: Number(e.target.value) }
                     })} />
                 </div>
-                <div className="col-md-3 col-sm-6 col-12">
+                <div className="col-md-3">
                   <label className="form-label">Defense Strength</label>
                   <select className="form-select"
                     value={opponentData.strengths.defense}
@@ -431,7 +411,7 @@
                     <option value="weak">Weak</option>
                   </select>
                 </div>
-                <div className="col-md-3 col-sm-6 col-12">
+                <div className="col-md-3">
                   <label className="form-label">Offense Strength</label>
                   <select className="form-select"
                     value={opponentData.strengths.offense}
@@ -455,11 +435,8 @@
               <div className="mt-4 p-3 bg-light rounded">
                 <h5>Suggested Play</h5>
                 <p><strong>Type:</strong> {suggestedPlay.type.toUpperCase()}</p>
-                <p><strong>Play:</strong> {suggestedPlay.name}</p>
+                <p><strong>Play:</strong> {suggestedPlay.play}</p>
                 <p><strong>Formation:</strong> {suggestedPlay.formation}</p>
-                {suggestedPlay.tags && suggestedPlay.tags.length > 0 && (
-                  <p><strong>Tags:</strong> {suggestedPlay.tags.join(", ")}</p>
-                )}
                 <button className="btn btn-success me-2" onClick={() => handlePlayOutcome(true)}>
                   Success <i className="fas fa-check"></i>
                 </button>
@@ -469,86 +446,41 @@
               </div>
             )}
 
-            {recommendations.length > 0 && (
-              <div className="mt-4">
-                <h5>Recommended Plays</h5>
-                <ul className="list-group">
-                  {recommendations.map((play, index) => (
-                    <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                      {play.name} ({play.type.toUpperCase()})
-                      <button className="btn btn-sm btn-secondary"
-                        onClick={() => setSuggestedPlay(play)}>
-                        Select <i className="fas fa-check"></i>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {feedback && <div className="alert alert-info mt-3">{feedback}</div>}
           </div>
         </div>
       );
+    };
 
     // Custom Play Form Component
-    const CustomPlayForm = () => {
-      const { addPlay } = useContext(PlaybookContext);
-      const [name, setName] = useState("");
-      const [type, setType] = useState("run");
-      const [formation, setFormation] = useState("I-Formation");
-      const [players, setPlayers] = useState("");
-      const [categories, setCategories] = useState([]);
-      const [tags, setTags] = useState("");
-      const [error, setError] = useState("");
-      const [success, setSuccess] = useState("");
+    const CustomPlayForm = ({ currentUser, refreshPlaybook }) => {
+      const [name, setName] = React.useState("");
+      const [type, setType] = React.useState("run");
+      const [formation, setFormation] = React.useState("I-Formation");
+      const [players, setPlayers] = React.useState("");
+      const [error, setError] = React.useState("");
 
-      const handleSubmit = (e) => {
+      const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
-        setSuccess("");
-
-        // Basic validation
-        if (!name.trim()) {
-          setError("Play name is required.");
+        if (!name || !players) {
+          setError("Please fill in all fields.");
           return;
         }
-        if (!players.trim()) {
-          setError("At least one player is required.");
-          return;
-        }
-        if (categories.length === 0) {
-          setError("At least one category must be selected.");
-          return;
-        }
-
-        // Validate play type
-        if (!playTypes[type] && type !== "custom") {
-          setError("Invalid play type selected.");
-          return;
-        }
-
-        const newPlay = {
-          name: name.trim(),
-          type,
-          formation,
-          players: players.split(",").map(p => p.trim()).filter(p => p !== ""),
-          categories,
-          tags: tags.split(",").map(t => t.trim()).filter(t => t !== "")
-        };
-
         try {
-          addPlay(newPlay);
+          await db.collection("users").doc(currentUser.uid).collection("playbook").add({
+            name,
+            type,
+            formation,
+            players: players.split(",").map(p => p.trim())
+          });
           setName("");
           setType("run");
           setFormation("I-Formation");
           setPlayers("");
-          setCategories([]);
-          setTags("");
-          setSuccess("Custom play added successfully!");
-          setTimeout(() => setSuccess(""), 3000);
+          refreshPlaybook();
         } catch (err) {
-          setError("Failed to add play. Please try again.");
+          setError(err.message);
         }
       };
 
@@ -557,7 +489,6 @@
           <div className="card-body">
             <h5 className="card-title">Create Custom Play</h5>
             {error && <div className="alert alert-danger">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
                 <label className="form-label">Play Name</label>
@@ -571,7 +502,6 @@
                   {Object.keys(playTypes).map(pt => (
                     <option key={pt} value={pt}>{pt.toUpperCase()}</option>
                   ))}
-                  <option value="custom">CUSTOM</option>
                 </select>
               </div>
               <div className="mb-3">
@@ -588,28 +518,6 @@
                 <input type="text" className="form-control" value={players}
                   onChange={(e) => setPlayers(e.target.value)} required />
               </div>
-              <div className="mb-3">
-                <label className="form-label">Categories</label>
-                <select
-                  className="form-select"
-                  multiple
-                  value={categories}
-                  onChange={(e) => {
-                    const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
-                    setCategories(selectedOptions);
-                  }}
-                >
-                  {availableCategories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-                <small className="form-text text-muted">Hold down the Ctrl (windows) or Command (Mac) button to select multiple options.</small>
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Tags (comma separated)</label>
-                <input type="text" className="form-control" value={tags}
-                  onChange={(e) => setTags(e.target.value)} />
-              </div>
               <button type="submit" className="btn btn-primary">Add Custom Play</button>
             </form>
           </div>
@@ -618,80 +526,67 @@
     };
 
     // Playbook Display Component
-    const Playbook = () => {
-      const { playbook, deletePlay } = useContext(PlaybookContext);
-      const [filterCategory, setFilterCategory] = useState("");
-      const [filterTag, setFilterTag] = useState("");
-      const [error, setError] = useState("");
-      const [deleteFeedback, setDeleteFeedback] = useState("");
+    const Playbook = ({ currentUser, selectCustomPlay }) => {
+      const [customPlays, setCustomPlays] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState("");
 
-      const handleDelete = (index) => {
-        if (confirm("Are you sure you want to delete this play?")) {
-          deletePlay(index);
-          setDeleteFeedback("Play deleted successfully!");
-          setTimeout(() => setDeleteFeedback(""), 3000);
+      const fetchCustomPlays = async () => {
+        setLoading(true);
+        setError("");
+        try {
+          const playsSnapshot = await db.collection("users").doc(currentUser.uid).collection("playbook").get();
+          const plays = playsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setCustomPlays(plays);
+        } catch (err) {
+          setError(err.message);
         }
+        setLoading(false);
       };
 
-      const filteredPlays = playbook.filter(play => {
-        const categoryMatch = filterCategory ? play.categories.includes(filterCategory) : true;
-        const tagMatch = filterTag ? play.tags.some(tag => tag.toLowerCase().includes(filterTag.toLowerCase())) : true;
-        return categoryMatch && tagMatch;
-      });
+      React.useEffect(() => {
+        fetchCustomPlays();
+        // eslint-disable-next-line
+      }, []);
+
+      const handleDelete = async (playId) => {
+        if (confirm("Are you sure you want to delete this play?")) {
+          try {
+            await db.collection("users").doc(currentUser.uid).collection("playbook").doc(playId).delete();
+            fetchCustomPlays();
+          } catch (err) {
+            alert(err.message);
+          }
+        }
+      };
 
       return (
         <div className="card">
           <div className="card-body">
             <h5 className="card-title">Your Playbook</h5>
-            <div className="row mb-3">
-              <div className="col-md-6 col-sm-12 mb-2">
-                <label className="form-label">Filter by Category</label>
-                <select className="form-select" value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}>
-                  <option value="">All</option>
-                  {availableCategories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-6 col-sm-12 mb-2">
-                <label className="form-label">Filter by Tag</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Enter tag to filter"
-                  value={filterTag}
-                  onChange={(e) => setFilterTag(e.target.value)}
-                />
-              </div>
-            </div>
-            {error && <div className="alert alert-danger">{error}</div>}
-            {deleteFeedback && <div className="alert alert-success">{deleteFeedback}</div>}
-            {filteredPlays.length > 0 ? (
-              filteredPlays.map((play, index) => (
-                <div key={index} className="play-card">
+            {loading ? (
+              <p>Loading...</p>
+            ) : error ? (
+              <div className="alert alert-danger">{error}</div>
+            ) : customPlays.length > 0 ? (
+              customPlays.map(play => (
+                <div key={play.id} className="play-card">
                   <h6>{play.name}</h6>
                   <p><strong>Type:</strong> {play.type.toUpperCase()}</p>
                   <p><strong>Formation:</strong> {play.formation}</p>
                   <p><strong>Players:</strong> {play.players.join(", ")}</p>
-                  {play.categories && play.categories.length > 0 && (
-                    <p><strong>Categories:</strong> {play.categories.join(", ")}</p>
-                  )}
-                  {play.tags && play.tags.length > 0 && (
-                    <p><strong>Tags:</strong> {play.tags.join(", ")}</p>
-                  )}
                   <button className="btn btn-success btn-sm me-2"
-                    onClick={() => alert(`Selected Play: ${play.name}\nFormation: ${play.formation}\nPlayers: ${play.players.join(", ")}`)}>
+                    onClick={() => selectCustomPlay(play)}>
                     Select <i className="fas fa-check"></i>
                   </button>
                   <button className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(index)}>
+                    onClick={() => handleDelete(play.id)}>
                     Delete <i className="fas fa-trash"></i>
                   </button>
                 </div>
               ))
             ) : (
-              <p>No plays match the filter criteria.</p>
+              <p>No custom plays added yet.</p>
             )}
           </div>
         </div>
@@ -699,157 +594,39 @@
     };
 
     // Analytics Dashboard Component
-    const Analytics = () => {
-      const { playHistory } = useContext(PlaybookContext);
-      const [loading, setLoading] = useState(true);
-      const [error, setError] = useState("");
-      const playTypeChartRef = useRef(null);
-      const successTrendChartRef = useRef(null);
-      const playFrequencyChartRef = useRef(null);
-      const chartInstances = useRef({});
+    const Analytics = ({ currentUser }) => {
+      const [playData, setPlayData] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState("");
 
-      const fetchPlayData = () => {
+      const fetchPlayData = async () => {
         setLoading(true);
         setError("");
         try {
-          setLoading(false);
+          const playsSnapshot = await db.collection("users").doc(currentUser.uid).collection("playbook").get();
+          const plays = playsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setPlayData(plays);
         } catch (err) {
-          setError("Failed to load analytics.");
-          setLoading(false);
+          setError(err.message);
         }
+        setLoading(false);
       };
 
-      useEffect(() => {
+      React.useEffect(() => {
         fetchPlayData();
+        // eslint-disable-next-line
       }, []);
 
       // Calculate play type distribution
-      const playTypeCount = playHistory.reduce((acc, play) => {
-        acc[play.playType] = (acc[play.playType] || 0) + 1;
+      const playTypeCount = playData.reduce((acc, play) => {
+        acc[play.type] = (acc[play.type] || 0) + 1;
         return acc;
       }, {});
 
-      const playTypeChartData = {
-        labels: Object.keys(playTypeCount).map(type => type.toUpperCase()),
-        datasets: [{
-          data: Object.values(playTypeCount),
-          backgroundColor: [
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
-            '#9966FF',
-            '#FF9F40',
-            '#FF9F40',
-            '#36A2EB',
-            '#FF6384'
-          ],
-        }]
-      };
-
-      // Calculate play success trend over time
-      const playSuccessTrend = playHistory.map(play => ({
-        date: new Date(play.date).toLocaleDateString(),
-        success: play.success ? 1 : 0
+      const chartData = Object.keys(playTypeCount).map(type => ({
+        name: type.toUpperCase(),
+        value: playTypeCount[type]
       }));
-
-      const groupedSuccessTrend = playSuccessTrend.reduce((acc, entry) => {
-        if (!acc[entry.date]) acc[entry.date] = { successes: 0, attempts: 0 };
-        acc[entry.date].attempts += 1;
-        acc[entry.date].successes += entry.success;
-        return acc;
-      }, {});
-
-      const successTrendChartData = {
-        labels: Object.keys(groupedSuccessTrend),
-        datasets: [{
-          label: 'Success Rate',
-          data: Object.keys(groupedSuccessTrend).map(date => {
-            const { successes, attempts } = groupedSuccessTrend[date];
-            return attempts > 0 ? (successes / attempts).toFixed(2) : 0;
-          }),
-          fill: false,
-          borderColor: '#36A2EB',
-          tension: 0.1
-        }]
-      };
-
-      // Calculate play frequency
-      const playFrequency = playHistory.reduce((acc, play) => {
-        acc[play.playName] = (acc[play.playName] || 0) + 1;
-        return acc;
-      }, {});
-
-      const playFrequencyChartData = {
-        labels: Object.keys(playFrequency),
-        datasets: [{
-          label: 'Play Frequency',
-          data: Object.values(playFrequency),
-          backgroundColor: '#FF6384',
-        }]
-      };
-
-      useEffect(() => {
-        const ctx1 = playTypeChartRef.current.getContext('2d');
-        const ctx2 = successTrendChartRef.current.getContext('2d');
-        const ctx3 = playFrequencyChartRef.current.getContext('2d');
-
-        // Destroy existing charts to prevent duplication
-        Object.values(chartInstances.current).forEach(chart => chart.destroy());
-
-        // Play Type Distribution Pie Chart
-        chartInstances.current.playTypeChart = new Chart(ctx1, {
-          type: 'pie',
-          data: playTypeChartData,
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'top' },
-              title: { display: true, text: 'Play Type Distribution' }
-            }
-          },
-        });
-
-        // Success Rate Trend Line Chart
-        chartInstances.current.successTrendChart = new Chart(ctx2, {
-          type: 'line',
-          data: successTrendChartData,
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'top' },
-              title: { display: true, text: 'Play Success Trend Over Time' }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                max: 1
-              }
-            }
-          },
-        });
-
-        // Play Frequency Bar Chart
-        chartInstances.current.playFrequencyChart = new Chart(ctx3, {
-          type: 'bar',
-          data: playFrequencyChartData,
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: false },
-              title: { display: true, text: 'Play Frequency' }
-            },
-            scales: {
-              y: { beginAtZero: true }
-            }
-          },
-        });
-
-        // Cleanup function to destroy charts on unmount
-        return () => {
-          Object.values(chartInstances.current).forEach(chart => chart.destroy());
-        };
-      }, [playTypeChartData, successTrendChartData, playFrequencyChartData]);
 
       return (
         <div className="card">
@@ -859,11 +636,9 @@
               <p>Loading...</p>
             ) : error ? (
               <div className="alert alert-danger">{error}</div>
-            ) : playHistory.length > 0 ? (
+            ) : playData.length > 0 ? (
               <div>
-                <canvas id="playTypeChart" ref={playTypeChartRef}></canvas>
-                <canvas id="successTrendChart" ref={successTrendChartRef} className="mt-4"></canvas>
-                <canvas id="playFrequencyChart" ref={playFrequencyChartRef} className="mt-4"></canvas>
+                <canvas id="playTypeChart"></canvas>
               </div>
             ) : (
               <p>No data to display.</p>
@@ -873,268 +648,104 @@
       );
     };
 
-    // Play Designer Component
-    const PlayDesigner = ({ refreshPlaybook }) => {
-      const { addPlay } = useContext(PlaybookContext);
-      const [players, setPlayers] = useState([
-        { id: 1, position: "QB", label: "QB" },
-        { id: 2, position: "RB", label: "RB" },
-        { id: 3, position: "WR", label: "WR" },
-        { id: 4, position: "TE", label: "TE" },
-        { id: 5, position: "OL", label: "OL" },
-        { id: 6, position: "DL", label: "DL" },
-        { id: 7, position: "LB", label: "LB" },
-        { id: 8, position: "CB", label: "CB" },
-        { id: 9, position: "S", label: "S" },
-        { id: 10, position: "P", label: "P" },
-        { id: 11, position: "K", label: "K" },
-      ]);
-      const [design, setDesign] = useState([]);
-      const [error, setError] = useState("");
-      const [success, setSuccess] = useState("");
+    // Main App Component
+    const App = () => {
+      const [currentUser, setCurrentUser] = React.useState(null);
+      const [showSignup, setShowSignup] = React.useState(false);
+      const [showLogin, setShowLogin] = React.useState(false);
+      const [suggestedPlay, setSuggestedPlay] = React.useState(null);
 
-      const handleDragStart = (e, player) => {
-        e.dataTransfer.setData("playerId", player.id);
+      React.useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(user => {
+          setCurrentUser(user);
+        });
+        return () => unsubscribe();
+      }, []);
+
+      const handleLogout = () => {
+        auth.signOut();
       };
 
-      const handleDrop = (e, position) => {
-        e.preventDefault();
-        const playerId = e.dataTransfer.getData("playerId");
-        const player = players.find(p => p.id === Number(playerId));
-        if (player) {
-          setDesign([...design, { ...player, x: position.x, y: position.y }]);
-        }
+      const selectCustomPlay = (play) => {
+        setSuggestedPlay(play);
       };
 
-      const handleDragOver = (e) => {
-        e.preventDefault();
-      };
+      // Initialize Chart.js for Analytics
+      React.useEffect(() => {
+        if (!currentUser) return;
+        const fetchAndRenderChart = async () => {
+          const playsSnapshot = await db.collection("users").doc(currentUser.uid).collection("playbook").get();
+          const plays = playsSnapshot.docs.map(doc => doc.data());
+          const playTypeCount = plays.reduce((acc, play) => {
+            acc[play.type] = (acc[play.type] || 0) + 1;
+            return acc;
+          }, {});
+          const labels = Object.keys(playTypeCount).map(pt => pt.toUpperCase());
+          const data = Object.values(playTypeCount);
 
-      const savePlayDesign = () => {
-        if (design.length === 0) {
-          setError("No players placed on the field.");
-          return;
-        }
-
-        const playName = prompt("Enter Play Name:");
-        if (!playName) {
-          setError("Play name is required.");
-          return;
-        }
-
-        const playType = prompt("Enter Play Type (run, pass, special):").toLowerCase();
-        if (!playTypes[playType]) {
-          setError("Invalid play type.");
-          return;
-        }
-
-        const formation = prompt("Enter Formation:");
-        if (!formation) {
-          setError("Formation is required.");
-          return;
-        }
-
-        const categoriesInput = prompt("Enter Categories (comma separated):");
-        const categories = categoriesInput ? categoriesInput.split(",").map(c => c.trim()).filter(c => c !== "") : [];
-
-        const tagsInput = prompt("Enter Tags (comma separated):");
-        const tags = tagsInput ? tagsInput.split(",").map(t => t.trim()).filter(t => t !== "") : [];
-
-        const newPlay = {
-          name: playName,
-          type: playType,
-          formation,
-          players: design.map(p => p.position),
-          categories,
-          tags
+          const ctx = document.getElementById('playTypeChart').getContext('2d');
+          new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Play Types',
+                data: data,
+                backgroundColor: [
+                  '#FF6384',
+                  '#36A2EB',
+                  '#FFCE56',
+                  '#4BC0C0',
+                  '#9966FF',
+                  '#FF9F40'
+                ],
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'top',
+                },
+                title: {
+                  display: true,
+                  text: 'Play Type Distribution'
+                }
+              }
+            },
+          });
         };
 
-        try {
-          addPlay(newPlay);
-          setDesign([]);
-          setSuccess("Custom play saved successfully!");
-          setTimeout(() => setSuccess(""), 3000);
-          refreshPlaybook();
-        } catch (err) {
-          setError("Failed to save play. Please try again.");
-        }
-      };
+        fetchAndRenderChart();
+      }, [currentUser]);
 
       return (
-        <div className="card">
-          <div className="card-body">
-            <h5 className="card-title">Drag-and-Drop Play Designer</h5>
-            {error && <div className="alert alert-danger">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
-            <div className="d-flex">
-              {/* Player Palette */}
-              <div className="me-4">
-                <h6>Players</h6>
-                {players.map(player => (
-                  <div
-                    key={player.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, player)}
-                    className="mb-2 p-2 bg-primary text-white rounded cursor-pointer"
-                  >
-                    {player.label}
-                  </div>
-                ))}
+        <div>
+          <Navbar currentUser={currentUser} handleLogout={handleLogout} />
+          <SignupModal show={showSignup} handleClose={() => setShowSignup(false)} />
+          <LoginModal show={showLogin} handleClose={() => setShowLogin(false)} />
+          <div className="container mt-5 pt-5">
+            {currentUser ? (
+              <div className="row">
+                <div className="col-md-6">
+                  <PlaySuggestion currentUser={currentUser} />
+                  <CustomPlayForm currentUser={currentUser} refreshPlaybook={() => {}} />
+                </div>
+                <div className="col-md-6">
+                  <Playbook currentUser={currentUser} selectCustomPlay={selectCustomPlay} />
+                  <Analytics currentUser={currentUser} />
+                </div>
               </div>
-
-              {/* Field Diagram */}
-              <div
-                className="field-diagram"
-                style={{
-                  position: "relative",
-                  width: "600px",
-                  height: "300px",
-                  backgroundImage: "url('https://i.imgur.com/4AIuYyQ.png')", // Replace with field image URL
-                  backgroundSize: "cover",
-                  border: "2px solid #ccc",
-                  borderRadius: "5px"
-                }}
-                onDrop={(e) => handleDrop(e, { x: e.clientX, y: e.clientY })}
-                onDragOver={handleDragOver}
-              >
-                {design.map((player, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      position: "absolute",
-                      left: `${player.x * 0.1}%`,
-                      top: `${player.y * 0.1}%`,
-                      transform: "translate(-50%, -50%)",
-                      width: "30px",
-                      height: "30px",
-                      borderRadius: "50%",
-                      backgroundColor: "#28a745",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {player.label}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <button className="btn btn-success mt-3" onClick={savePlayDesign} disabled={design.length === 0}>
-              Save Custom Play
-            </button>
-          </div>
-        </div>
-      );
-    };
-
-    // Game Simulation Component
-    const GameSimulator = () => {
-      const { playbook } = useContext(PlaybookContext);
-      const [simulations, setSimulations] = useState(1000);
-      const [result, setResult] = useState(null);
-      const [loading, setLoading] = useState(false);
-
-      const runSimulation = () => {
-        setLoading(true);
-        setResult(null);
-
-        try {
-          if (playbook.length === 0) {
-            alert("Playbook is empty. Please add plays to simulate.");
-            setLoading(false);
-            return;
-          }
-
-          let wins = 0;
-          let totalScore = 0;
-
-          for (let i = 0; i < simulations; i++) {
-            let score = 0;
-            // Simple simulation: iterate through plays and accumulate score
-            playbook.forEach(play => {
-              const successRate = play.successRate || 0.5; // Default success rate
-              if (Math.random() < successRate) {
-                // Assume a successful play adds points
-                if (play.type === "run") score += 3;
-                if (play.type === "pass") score += 4;
-                if (play.type === "special") score += 2;
-              }
-            });
-            totalScore += score;
-            if (score > 50) wins += 1; // Arbitrary win condition
-          }
-
-          setResult({
-            winRate: ((wins / simulations) * 100).toFixed(2),
-            averageScore: (totalScore / simulations).toFixed(2)
-          });
-        } catch (err) {
-          alert("An error occurred during simulation. Please try again.");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      return (
-        <div className="card">
-          <div className="card-body">
-            <h5 className="card-title">Game Simulation</h5>
-            <div className="mb-3">
-              <label className="form-label">Number of Simulations</label>
-              <input
-                type="number"
-                className="form-control"
-                value={simulations}
-                onChange={(e) => setSimulations(Number(e.target.value))}
-                min="100"
-                max="10000"
-              />
-            </div>
-            <button className="btn btn-primary" onClick={runSimulation} disabled={loading}>
-              {loading ? "Simulating..." : "Run Simulation"}
-            </button>
-
-            {result && (
-              <div className="mt-4">
-                <h6>Simulation Results:</h6>
-                <p><strong>Win Rate:</strong> {result.winRate}%</p>
-                <p><strong>Average Score:</strong> {result.averageScore}</p>
+            ) : (
+              <div className="text-center">
+                <h3>Welcome to Advanced Playbook App</h3>
+                <p>Please login or sign up to manage your playbook.</p>
+                <button className="btn btn-primary me-2" onClick={() => setShowLogin(true)}>Login</button>
+                <button className="btn btn-secondary" onClick={() => setShowSignup(true)}>Sign Up</button>
               </div>
             )}
           </div>
         </div>
-      );
-    };
-
-    // Play Recommendation System Component (Integrated within PlaySuggestion)
-    // Already handled within PlaySuggestion's generateRecommendations and recommendations list
-
-    // Error Handling and Data Validation are integrated within each component
-
-    // Main App Component
-    const App = () => {
-      return (
-        <ErrorBoundary>
-          <PlaybookProvider>
-            <Navbar />
-            <div className="container">
-              <div className="row">
-                <div className="col-lg-6 col-md-12">
-                  <PlaySuggestion />
-                  <CustomPlayForm />
-                  <PlayDesigner />
-                  <GameSimulator />
-                </div>
-                <div className="col-lg-6 col-md-12">
-                  <Playbook />
-                  <Analytics />
-                </div>
-              </div>
-            </div>
-          </PlaybookProvider>
-        </ErrorBoundary>
       );
     };
 
@@ -1145,5 +756,7 @@
 
   <!-- Bootstrap 5 JS and dependencies -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
